@@ -7,14 +7,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>Video</title>
+<title>clickVideo</title>
 <style>
 :root{color-scheme:dark;--accent:#ff3158;--panel:rgba(0,0,0,.58)}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#050505;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
 .player{position:relative;width:100%;height:100%;height:100dvh;background:#050505;display:grid;place-items:center;isolation:isolate}
 .poster,.video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#050505}
 .poster{object-fit:cover;filter:blur(18px) brightness(.62);transform:scale(1.06);transition:filter .65s ease,opacity .65s ease;z-index:1}
-.video{z-index:0;display:none}
+.video{z-index:0;display:none;filter:none!important;opacity:1!important}
 .shade{position:absolute;inset:0;z-index:2;background:linear-gradient(0deg,rgba(0,0,0,.56),transparent 38%,rgba(0,0,0,.18));pointer-events:none}
 .age{position:absolute;z-index:5;inset:0;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.25);transition:opacity .35s ease,visibility .35s ease}
 .age-card{text-align:center;width:min(88vw,390px);padding:26px 22px;border:1px solid rgba(255,255,255,.22);border-radius:18px;background:rgba(10,10,10,.58);backdrop-filter:blur(8px);box-shadow:0 12px 48px rgba(0,0,0,.35)}
@@ -130,7 +130,16 @@ var LANDING_CONFIG = {
   // Fallback media is stored locally beside index.html, in ./default/ (not on R2).
   var defaultImageUrl = new URL(LANDING_CONFIG.defaultImagePath, window.location.href).toString();
   var defaultVideoUrl = new URL(LANDING_CONFIG.defaultVideoPath, window.location.href).toString();
-  poster.onerror = function(){ poster.onerror = null; poster.src = defaultImageUrl; };
+  poster.onerror = function(){
+    // The blurred preview must come from the R2 WebP for this campaign/creative.
+    // Do not substitute the local default video or another asset as the poster.
+    poster.onerror = null;
+    poster.removeAttribute('src');
+    poster.style.display = 'none';
+  };
+  poster.onload = function(){ poster.style.display = 'block'; };
+  // Keep the local default video only as a playback fallback, never as the blurred poster.
+  video.style.display = 'none';
   video.onerror = function(){
     if (video.dataset.fallback !== '1') { video.dataset.fallback='1'; video.src=defaultVideoUrl; video.load(); }
   };
