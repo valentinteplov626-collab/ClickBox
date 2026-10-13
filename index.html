@@ -21,7 +21,8 @@
 .age-card{text-align:center;width:min(88vw,390px);padding:26px 22px;border:1px solid rgba(255,255,255,.22);border-radius:18px;background:rgba(10,10,10,.58);backdrop-filter:blur(8px);box-shadow:0 12px 48px rgba(0,0,0,.35)}
 .age-title{font-size:clamp(21px,5vw,28px);font-weight:800;margin:0 0 9px}.age-sub{font-size:14px;opacity:.88;margin:0 0 20px;line-height:1.45}
 .primary{border:0;border-radius:999px;background:var(--accent);color:white;font-size:16px;font-weight:800;padding:15px 24px;min-height:50px;width:100%;cursor:pointer;box-shadow:0 5px 24px rgba(255,49,88,.32)}
-.play-wrap{position:absolute;z-index:4;display:none;place-items:center;inset:0;pointer-events:none}
+.play-wrap{position:absolute;z-index:4;display:none;place-items:center;align-content:center;gap:14px;inset:0;pointer-events:none}
+.play-hint{color:#fff;font-size:16px;font-weight:800;line-height:1.3;text-align:center;padding:9px 16px;border-radius:999px;background:rgba(0,0,0,.62);text-shadow:0 1px 3px #000;pointer-events:none;box-shadow:0 3px 14px rgba(0,0,0,.25)}
 .play{pointer-events:auto;width:86px;height:86px;border:0;border-radius:50%;background:rgba(255,49,88,.94);box-shadow:0 0 0 0 rgba(255,49,88,.6);display:grid;place-items:center;animation:pulse 1.6s infinite;cursor:pointer}
 .play svg{width:34px;height:34px;margin-left:5px;fill:white}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,49,88,.58)}70%{box-shadow:0 0 0 22px rgba(255,49,88,0)}100%{box-shadow:0 0 0 0 rgba(255,49,88,0)}}
@@ -46,6 +47,7 @@
   </div>
   <div class="play-wrap" id="playWrap">
     <button class="play" id="playButton" type="button" aria-label="Play video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5c0-.8.9-1.3 1.6-.9l10 6.1a1.5 1.5 0 0 1 0 2.6l-10 6.1c-.7.4-1.6-.1-1.6-.9z"/></svg></button>
+    <div class="play-hint" id="playHint">Tap to watch</div>
   </div>
   <div class="controls" id="controls">
     <button class="sound" id="soundButton" type="button" aria-label="Turn sound on">🔇</button>
@@ -88,25 +90,26 @@ var LANDING_CONFIG = {
   var controls = document.getElementById('controls');
   var soundButton = document.getElementById('soundButton');
   var caption = document.getElementById('caption');
+  var playHint = document.getElementById('playHint');
   var hasInteracted = false, ageConfirmed = false, playStarted = false, redirected = false;
   var autoExitTimer = null, delayedRedirectTimer = null;
   var currentTabUrl = '', newTabUrl = '';
 
   var translations = {
-    en:{title:'Confirm your age',sub:'Click to confirm that you are 18 or older.',button:"I'm 18 or older",caption:'Watch more videos like this'},
-    es:{title:'Confirma tu edad',sub:'Haz clic para confirmar que tienes 18 años o más.',button:'Tengo 18 años o más',caption:'Mira más vídeos como este'},
-    pt:{title:'Confirme sua idade',sub:'Clique para confirmar que você tem 18 anos ou mais.',button:'Tenho 18 anos ou mais',caption:'Assista a mais vídeos como este'},
-    id:{title:'Konfirmasi usia Anda',sub:'Klik untuk mengonfirmasi bahwa Anda berusia 18 tahun ke atas.',button:'Saya berusia 18 tahun ke atas',caption:'Tonton lebih banyak video seperti ini'},
-    th:{title:'ยืนยันอายุของคุณ',sub:'คลิกเพื่อยืนยันว่าคุณมีอายุ 18 ปีขึ้นไป',button:'ฉันอายุ 18 ปีขึ้นไป',caption:'ดูวิดีโอเพิ่มเติมแบบนี้'},
-    fr:{title:'Confirmez votre âge',sub:'Cliquez pour confirmer que vous avez 18 ans ou plus.',button:'J’ai 18 ans ou plus',caption:'Regardez plus de vidéos comme celle-ci'},
-    ur:{title:'اپنی عمر کی تصدیق کریں',sub:'تصدیق کے لیے کلک کریں کہ آپ کی عمر 18 سال یا اس سے زیادہ ہے۔',button:'میری عمر 18 سال یا زیادہ ہے',caption:'اس طرح کی مزید ویڈیوز دیکھیں'},
-    ne:{title:'आफ्नो उमेर पुष्टि गर्नुहोस्',sub:'तपाईं १८ वर्ष वा सोभन्दा माथिको हुनुहुन्छ भनी पुष्टि गर्न क्लिक गर्नुहोस्।',button:'म १८ वर्ष वा माथिको हुँ',caption:'यस्तै थप भिडियोहरू हेर्नुहोस्'},
-    hi:{title:'अपनी उम्र की पुष्टि करें',sub:'पुष्टि करने के लिए क्लिक करें कि आपकी उम्र 18 वर्ष या उससे अधिक है।',button:'मैं 18 वर्ष या उससे अधिक का हूँ',caption:'ऐसे और वीडियो देखें'},
-    bn:{title:'আপনার বয়স নিশ্চিত করুন',sub:'আপনার বয়স ১৮ বছর বা তার বেশি তা নিশ্চিত করতে ক্লিক করুন।',button:'আমার বয়স ১৮ বা তার বেশি',caption:'এমন আরও ভিডিও দেখুন'},
-    ms:{title:'Sahkan umur anda',sub:'Klik untuk mengesahkan bahawa anda berumur 18 tahun ke atas.',button:'Saya berumur 18 tahun ke atas',caption:'Tonton lebih banyak video seperti ini'},
-    fil:{title:'Kumpirmahin ang iyong edad',sub:'I-click upang kumpirmahing ikaw ay 18 taong gulang o mas matanda.',button:'Ako ay 18 taong gulang pataas',caption:'Manood ng higit pang mga video na tulad nito'},
-    de:{title:'Bestätige dein Alter',sub:'Klicke, um zu bestätigen, dass du mindestens 18 Jahre alt bist.',button:'Ich bin mindestens 18',caption:'Sieh dir weitere Videos wie dieses an'},
-    ru:{title:'Подтвердите возраст',sub:'Нажмите, чтобы подтвердить, что вам исполнилось 18 лет.',button:'Мне есть 18 лет',caption:'Смотрите больше похожих видео'}
+    en:{title:'Confirm your age',sub:'Click to confirm that you are 18 or older.',button:"I'm 18 or older",caption:'Watch more videos like this',playHint:'Tap to watch'},
+    es:{title:'Confirma tu edad',sub:'Haz clic para confirmar que tienes 18 años o más.',button:'Tengo 18 años o más',caption:'Mira más vídeos como este',playHint:'Toca para ver'},
+    pt:{title:'Confirme sua idade',sub:'Clique para confirmar que você tem 18 anos ou mais.',button:'Tenho 18 anos ou mais',caption:'Assista a mais vídeos como este',playHint:'Toque para assistir'},
+    id:{title:'Konfirmasi usia Anda',sub:'Klik untuk mengonfirmasi bahwa Anda berusia 18 tahun ke atas.',button:'Saya berusia 18 tahun ke atas',caption:'Tonton lebih banyak video seperti ini',playHint:'Ketuk untuk menonton'},
+    th:{title:'ยืนยันอายุของคุณ',sub:'คลิกเพื่อยืนยันว่าคุณมีอายุ 18 ปีขึ้นไป',button:'ฉันอายุ 18 ปีขึ้นไป',caption:'ดูวิดีโอเพิ่มเติมแบบนี้',playHint:'แตะเพื่อรับชม'},
+    fr:{title:'Confirmez votre âge',sub:'Cliquez pour confirmer que vous avez 18 ans ou plus.',button:'J’ai 18 ans ou plus',caption:'Regardez plus de vidéos comme celle-ci',playHint:'Appuyez pour regarder'},
+    ur:{title:'اپنی عمر کی تصدیق کریں',sub:'تصدیق کے لیے کلک کریں کہ آپ کی عمر 18 سال یا اس سے زیادہ ہے۔',button:'میری عمر 18 سال یا زیادہ ہے',caption:'اس طرح کی مزید ویڈیوز دیکھیں',playHint:'دیکھنے کے لیے ٹیپ کریں'},
+    ne:{title:'आफ्नो उमेर पुष्टि गर्नुहोस्',sub:'तपाईं १८ वर्ष वा सोभन्दा माथिको हुनुहुन्छ भनी पुष्टि गर्न क्लिक गर्नुहोस्।',button:'म १८ वर्ष वा माथिको हुँ',caption:'यस्तै थप भिडियोहरू हेर्नुहोस्',playHint:'हेर्न ट्याप गर्नुहोस्'},
+    hi:{title:'अपनी उम्र की पुष्टि करें',sub:'पुष्टि करने के लिए क्लिक करें कि आपकी उम्र 18 वर्ष या उससे अधिक है।',button:'मैं 18 वर्ष या उससे अधिक का हूँ',caption:'ऐसे और वीडियो देखें',playHint:'देखने के लिए टैप करें'},
+    bn:{title:'আপনার বয়স নিশ্চিত করুন',sub:'আপনার বয়স ১৮ বছর বা তার বেশি তা নিশ্চিত করতে ক্লিক করুন।',button:'আমার বয়স ১৮ বা তার বেশি',caption:'এমন আরও ভিডিও দেখুন',playHint:'দেখতে ট্যাপ করুন'},
+    ms:{title:'Sahkan umur anda',sub:'Klik untuk mengesahkan bahawa anda berumur 18 tahun ke atas.',button:'Saya berumur 18 tahun ke atas',caption:'Tonton lebih banyak video seperti ini',playHint:'Ketuk untuk menonton'},
+    fil:{title:'Kumpirmahin ang iyong edad',sub:'I-click upang kumpirmahing ikaw ay 18 taong gulang o mas matanda.',button:'Ako ay 18 taong gulang pataas',caption:'Manood ng higit pang mga video na tulad nito',playHint:'I-tap para manood'},
+    de:{title:'Bestätige dein Alter',sub:'Klicke, um zu bestätigen, dass du mindestens 18 Jahre alt bist.',button:'Ich bin mindestens 18',caption:'Sieh dir weitere Videos wie dieses an',playHint:'Zum Ansehen tippen'},
+    ru:{title:'Подтвердите возраст',sub:'Нажмите, чтобы подтвердить, что вам исполнилось 18 лет.',button:'Мне есть 18 лет',caption:'Смотрите больше похожих видео',playHint:'Жми для просмотра'}
   };
   lang = getLanguage(params.get('lang'));
   var t = translations[lang] || translations.en;
@@ -115,6 +118,7 @@ var LANDING_CONFIG = {
   document.getElementById('ageSub').textContent = t.sub;
   ageButton.textContent = t.button;
   caption.textContent = t.caption;
+  playHint.textContent = t.playHint || translations.en.playHint;
 
   // Video is the blurred background during age confirmation. Try the R2 video
   // identified by creative_id; if missing, play the local ./default/default.webm.
