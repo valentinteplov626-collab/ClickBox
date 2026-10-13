@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Video</title>
+<style>
+:root{color-scheme:dark;--accent:#ff3158;--panel:rgba(0,0,0,.58)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#050505;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
+.player{position:relative;width:100%;height:100%;height:100dvh;background:#050505;display:grid;place-items:center;isolation:isolate}
+.poster,.video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#050505}
+.poster{object-fit:cover;filter:blur(18px) brightness(.62);transform:scale(1.06);transition:filter .65s ease,opacity .65s ease;z-index:1}
+.video{z-index:0;display:none}
+.shade{position:absolute;inset:0;z-index:2;background:linear-gradient(0deg,rgba(0,0,0,.56),transparent 38%,rgba(0,0,0,.18));pointer-events:none}
+.age{position:absolute;z-index:5;inset:0;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.25);transition:opacity .35s ease,visibility .35s ease}
+.age-card{text-align:center;width:min(88vw,390px);padding:26px 22px;border:1px solid rgba(255,255,255,.22);border-radius:18px;background:rgba(10,10,10,.58);backdrop-filter:blur(8px);box-shadow:0 12px 48px rgba(0,0,0,.35)}
+.age-title{font-size:clamp(21px,5vw,28px);font-weight:800;margin:0 0 9px}.age-sub{font-size:14px;opacity:.88;margin:0 0 20px;line-height:1.45}
+.primary{border:0;border-radius:999px;background:var(--accent);color:white;font-size:16px;font-weight:800;padding:15px 24px;min-height:50px;width:100%;cursor:pointer;box-shadow:0 5px 24px rgba(255,49,88,.32)}
+.play-wrap{position:absolute;z-index:4;display:none;place-items:center;inset:0;pointer-events:none}
+.play{pointer-events:auto;width:86px;height:86px;border:0;border-radius:50%;background:rgba(255,49,88,.94);box-shadow:0 0 0 0 rgba(255,49,88,.6);display:grid;place-items:center;animation:pulse 1.6s infinite;cursor:pointer}
+.play svg{width:34px;height:34px;margin-left:5px;fill:white}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,49,88,.58)}70%{box-shadow:0 0 0 22px rgba(255,49,88,0)}100%{box-shadow:0 0 0 0 rgba(255,49,88,0)}}
+.controls{position:absolute;z-index:4;left:16px;right:16px;bottom:max(18px,env(safe-area-inset-bottom));display:none;align-items:center;gap:12px;text-shadow:0 1px 4px #000}
+.sound{width:44px;height:44px;border:1px solid rgba(255,255,255,.28);border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:20px;cursor:pointer}
+.caption{font-size:14px;font-weight:650;line-height:1.35}
+.age-hidden{opacity:0;visibility:hidden;pointer-events:none}.poster-clear{filter:blur(0) brightness(.85);opacity:.28}.show-play{display:grid}.controls-on{display:flex}
+.status{position:absolute;z-index:6;top:12px;left:12px;font-size:11px;opacity:.0;pointer-events:none}
+@media(min-aspect-ratio:1/1){.poster{object-fit:contain}.age-card{max-width:420px}}
+</style>
+</head>
+<body>
+<div class="player" id="player">
+  <img class="poster" id="poster" alt="Video preview" fetchpriority="high">
+  <video class="video" id="video" playsinline webkit-playsinline preload="none"></video>
+  <div class="shade"></div>
+  <div class="age" id="ageOverlay" role="dialog" aria-modal="true" aria-labelledby="ageTitle">
+    <div class="age-card">
+      <h1 class="age-title" id="ageTitle">Confirm your age</h1>
+      <p class="age-sub" id="ageSub">Click to confirm that you are 18 or older.</p>
+      <button class="primary" id="ageButton" type="button">I'm 18 or older</button>
+    </div>
+  </div>
+  <div class="play-wrap" id="playWrap">
+    <button class="play" id="playButton" type="button" aria-label="Play video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5c0-.8.9-1.3 1.6-.9l10 6.1a1.5 1.5 0 0 1 0 2.6l-10 6.1c-.7.4-1.6-.1-1.6-.9z"/></svg></button>
+  </div>
+  <div class="controls" id="controls">
+    <button class="sound" id="soundButton" type="button" aria-label="Turn sound on">🔇</button>
+    <div class="caption" id="caption">Watch more videos like this</div>
+  </div>
+</div>
+<script>
+/* ===== CONFIG: set the public R2 custom domain below before deployment ===== */
+var APP_CONFIG = {
+  domain: "https://yzwtz.com",
+  mainExit_currentTab_zoneId: 12012965,
+  mainExit_newTab_zoneId: 12012964,
+  reverse_zoneId: 12012963,
+  autoexit_zoneId: 12012966,
+  autoexit_timeToRedirect: 20,
+  back_zoneId: 12012967,
+  back_count: 10,
+  tabUnderClick_zoneId: 12012969,
+  secondsLeftBeforeFinal: 10
+};
+var LANDING_CONFIG = {
+  r2BaseUrl: "https://YOUR-R2-PUBLIC-DOMAIN", // e.g. https://cdn.example.com
+  redirectDelayMs: 2000,
+  autoExitSeconds: 20,
+  defaultFolder: "default",
+  imageExtension: "webp",
+  videoExtension: "webm",
+  imageName: "image",
+  videoName: "video"
+};
+(function(){
+  'use strict';
+  var params = new URLSearchParams(window.location.search);
+  var campaignFolder = safeSegment(params.get('var_2') || '');
+  var creativeId = safeSegment(params.get('creative_id') || '');
+  var lang = getLanguage(params.get('lang'));
+  var poster = document.getElementById('poster');
+  var video = document.getElementById('video');
+  var ageOverlay = document.getElementById('ageOverlay');
+  var ageButton = document.getElementById('ageButton');
+  var playWrap = document.getElementById('playWrap');
+  var playButton = document.getElementById('playButton');
+  var controls = document.getElementById('controls');
+  var soundButton = document.getElementById('soundButton');
+  var caption = document.getElementById('caption');
+  var hasInteracted = false, ageConfirmed = false, playStarted = false, redirected = false;
+  var autoExitTimer = null, delayedRedirectTimer = null;
+  var currentTabUrl = '', newTabUrl = '';
+
+  var translations = {
+    en:{title:'Confirm your age',sub:'Click to confirm that you are 18 or older.',button:"I'm 18 or older",caption:'Watch more videos like this'},
+    es:{title:'Confirma tu edad',sub:'Haz clic para confirmar que tienes 18 años o más.',button:'Tengo 18 años o más',caption:'Mira más vídeos como este'},
+    pt:{title:'Confirme sua idade',sub:'Clique para confirmar que você tem 18 anos ou mais.',button:'Tenho 18 anos ou mais',caption:'Assista a mais vídeos como este'},
+    id:{title:'Konfirmasi usia Anda',sub:'Klik untuk mengonfirmasi bahwa Anda berusia 18 tahun ke atas.',button:'Saya berusia 18 tahun ke atas',caption:'Tonton lebih banyak video seperti ini'},
+    th:{title:'ยืนยันอายุของคุณ',sub:'คลิกเพื่อยืนยันว่าคุณมีอายุ 18 ปีขึ้นไป',button:'ฉันอายุ 18 ปีขึ้นไป',caption:'ดูวิดีโอเพิ่มเติมแบบนี้'},
+    fr:{title:'Confirmez votre âge',sub:'Cliquez pour confirmer que vous avez 18 ans ou plus.',button:'J’ai 18 ans ou plus',caption:'Regardez plus de vidéos comme celle-ci'},
+    ur:{title:'اپنی عمر کی تصدیق کریں',sub:'تصدیق کے لیے کلک کریں کہ آپ کی عمر 18 سال یا اس سے زیادہ ہے۔',button:'میری عمر 18 سال یا زیادہ ہے',caption:'اس طرح کی مزید ویڈیوز دیکھیں'},
+    ne:{title:'आफ्नो उमेर पुष्टि गर्नुहोस्',sub:'तपाईं १८ वर्ष वा सोभन्दा माथिको हुनुहुन्छ भनी पुष्टि गर्न क्लिक गर्नुहोस्।',button:'म १८ वर्ष वा माथिको हुँ',caption:'यस्तै थप भिडियोहरू हेर्नुहोस्'},
+    hi:{title:'अपनी उम्र की पुष्टि करें',sub:'पुष्टि करने के लिए क्लिक करें कि आपकी उम्र 18 वर्ष या उससे अधिक है।',button:'मैं 18 वर्ष या उससे अधिक का हूँ',caption:'ऐसे और वीडियो देखें'},
+    bn:{title:'আপনার বয়স নিশ্চিত করুন',sub:'আপনার বয়স ১৮ বছর বা তার বেশি তা নিশ্চিত করতে ক্লিক করুন।',button:'আমার বয়স ১৮ বা তার বেশি',caption:'এমন আরও ভিডিও দেখুন'},
+    ms:{title:'Sahkan umur anda',sub:'Klik untuk mengesahkan bahawa anda berumur 18 tahun ke atas.',button:'Saya berumur 18 tahun ke atas',caption:'Tonton lebih banyak video seperti ini'},
+    fil:{title:'Kumpirmahin ang iyong edad',sub:'I-click upang kumpirmahing ikaw ay 18 taong gulang o mas matanda.',button:'Ako ay 18 taong gulang pataas',caption:'Manood ng higit pang mga video na tulad nito'},
+    de:{title:'Bestätige dein Alter',sub:'Klicke, um zu bestätigen, dass du mindestens 18 Jahre alt bist.',button:'Ich bin mindestens 18',caption:'Sieh dir weitere Videos wie dieses an'}
+  };
+  var t = translations[lang] || translations.en;
+  document.documentElement.lang = lang;
+  document.getElementById('ageTitle').textContent = t.title;
+  document.getElementById('ageSub').textContent = t.sub;
+  ageButton.textContent = t.button;
+  caption.textContent = t.caption;
+
+  // Assets: /{var_2}/{creative_id}.webp and /{var_2}/{creative_id}.webm.
+  // Image and video fall back independently to /default/image.webp and /default/video.webm.
+  var base = LANDING_CONFIG.r2BaseUrl.replace(/\/$/, '');
+  var folder = campaignFolder || LANDING_CONFIG.defaultFolder;
+  var imageUrl = assetUrl(folder, creativeId, LANDING_CONFIG.imageName, LANDING_CONFIG.imageExtension);
+  var videoUrl = assetUrl(folder, creativeId, LANDING_CONFIG.videoName, LANDING_CONFIG.videoExtension);
+  var defaultImageUrl = assetUrl(LANDING_CONFIG.defaultFolder, '', LANDING_CONFIG.imageName, LANDING_CONFIG.imageExtension);
+  var defaultVideoUrl = assetUrl(LANDING_CONFIG.defaultFolder, '', LANDING_CONFIG.videoName, LANDING_CONFIG.videoExtension);
+  poster.onerror = function(){ poster.onerror = null; poster.src = defaultImageUrl; };
+  video.onerror = function(){
+    if (video.dataset.fallback !== '1') { video.dataset.fallback='1'; video.src=defaultVideoUrl; video.load(); }
+  };
+  poster.src = imageUrl;
+  video.src = videoUrl;
+  video.muted = true;
+  video.addEventListener('ended', function(){ showPlayAgain(); });
+  video.addEventListener('play', function(){ playStarted=true; controls.classList.add('controls-on'); playWrap.classList.remove('show-play'); });
+  video.addEventListener('pause', function(){ if (!video.ended && playStarted && !redirected) playWrap.classList.add('show-play'); });
+
+  // The no-interaction timer starts on page load and is cancelled by any user interaction.
+  autoExitTimer = window.setTimeout(function(){ if (!hasInteracted) runAutoExit(); }, LANDING_CONFIG.autoExitSeconds * 1000);
+  ['pointerdown','touchstart','keydown','wheel','scroll','mousemove'].forEach(function(evt){
+    window.addEventListener(evt, function(){ if (!hasInteracted) { hasInteracted=true; clearTimeout(autoExitTimer); } }, {passive:true, once:true});
+  });
+
+  ageButton.addEventListener('click', function(){
+    hasInteracted = true; clearTimeout(autoExitTimer); ageConfirmed = true;
+    ageOverlay.classList.add('age-hidden');
+    poster.classList.add('poster-clear');
+    playWrap.classList.add('show-play');
+    syncMetric({event:'ageExit', exitZoneId:null, action:'age_confirmed'});
+  });
+
+  playButton.addEventListener('click', function(){
+    if (!ageConfirmed || redirected) return;
+    hasInteracted = true; clearTimeout(autoExitTimer);
+    // Open the ad tab directly inside the click gesture, before the delayed redirect.
+    newTabUrl = getExitUrl(APP_CONFIG.mainExit_newTab_zoneId);
+    currentTabUrl = getExitUrl(APP_CONFIG.mainExit_currentTab_zoneId);
+    var adTab = window.open(newTabUrl, '_blank');
+    if (adTab) { try { adTab.opener = null; } catch(e){} }
+    syncMetric({event:'mainExit', exitZoneId:APP_CONFIG.mainExit_newTab_zoneId, action:'play_new_tab'});
+    video.style.display = 'block';
+    poster.style.opacity = '0';
+    video.muted = true;
+    video.play().then(function(){
+      playWrap.classList.remove('show-play');
+      controls.classList.add('controls-on');
+    }).catch(function(){
+      // Some browsers require another explicit tap after source loading.
+      playWrap.classList.add('show-play');
+    });
+    syncMetric({event:'start', exitZoneId:null, action:'video_play'});
+    clearTimeout(delayedRedirectTimer);
+    delayedRedirectTimer = window.setTimeout(function(){
+      if (redirected) return;
+      redirected = true;
+      syncMetric({event:'mainExit', exitZoneId:APP_CONFIG.mainExit_currentTab_zoneId, action:'play_delayed_current_tab'});
+      window.location.replace(currentTabUrl);
+    }, LANDING_CONFIG.redirectDelayMs);
+  });
+
+  soundButton.addEventListener('click', function(){
+    video.muted = !video.muted;
+    soundButton.textContent = video.muted ? '🔇' : '🔊';
+    soundButton.setAttribute('aria-label', video.muted ? 'Turn sound on' : 'Mute video');
+    if (!video.muted) { video.volume = 1; video.play().catch(function(){}); }
+  });
+
+  // System/browser Back handling: reverse_zoneId only, preserving the existing mapping.
+  try { history.pushState({clickboxLanding:true}, '', location.href); } catch(e){}
+  window.addEventListener('popstate', function(){
+    if (redirected) return;
+    syncMetric({event:'reverse', exitZoneId:APP_CONFIG.reverse_zoneId, action:'browser_back'});
+    window.location.replace(getExitUrl(APP_CONFIG.reverse_zoneId));
+  });
+
+  function runAutoExit(){
+    if (redirected) return;
+    redirected = true;
+    syncMetric({event:'autoexit', exitZoneId:APP_CONFIG.autoexit_zoneId, action:'no_interaction_timeout'});
+    window.location.replace(getExitUrl(APP_CONFIG.autoexit_zoneId));
+  }
+  function showPlayAgain(){ playWrap.classList.add('show-play'); }
+  function safeSegment(value){
+    value = String(value || '').trim();
+    // Only accept plain folder/file tokens; prevent URL path injection.
+    return /^[a-zA-Z0-9_-]{1,80}$/.test(value) ? value : '';
+  }
+  function assetUrl(folderName, id, kind, ext){
+    var file = id ? id + '.' + ext : kind + '.' + ext;
+    return base + '/' + encodeURIComponent(folderName || LANDING_CONFIG.defaultFolder) + '/' + encodeURIComponent(file);
+  }
+  function getLanguage(explicit){
+    var raw = (explicit || navigator.language || 'en').toLowerCase().split('-')[0];
+    if (raw === 'tl') raw='fil';
+    return translations[raw] ? raw : 'en';
+  }
+  function getExitUrl(zoneId){
+    var url = new URL('/afu.php', APP_CONFIG.domain);
+    url.searchParams.set('zone', String(zoneId));
+    // Pass all source parameters to the ad URL, including tracking IDs and custom variables.
+    params.forEach(function(value,key){ url.searchParams.append(key,value); });
+    return url.toString();
+  }
+  function syncMetric(payload){
+    try {
+      var now = Date.now();
+      var historyKey = 'events_history';
+      var events = [];
+      try { events = JSON.parse(sessionStorage.getItem(historyKey) || '[]'); } catch(e){}
+      events.push({currentTs:now,eventName:payload.event || 'unknown',delta:events.length ? now-events[events.length-1].currentTs : 0,action:payload.action || ''});
+      sessionStorage.setItem(historyKey, JSON.stringify(events.slice(-30)));
+      var data = {
+        app:'clickbox',event:payload.event || 'unknown',language:lang,
+        landing_name:'video_landing',landing_version:'1.0.0',landing_domain:location.hostname,landing_url:location.href,
+        exit_zone_id:payload.exitZoneId || null,request_var:params.get('var_3') || '',source_zone_id:params.get('var_2') || '',sub_id:params.get('var_1') || '',
+        creative_id:creativeId,load_time_ms:now-(window.__landingStart || now),event_history:events.slice(-30),action:payload.action || ''
+      };
+      var body = new Blob([JSON.stringify(data)], {type:'application/json'});
+      if (navigator.sendBeacon) navigator.sendBeacon('https://wuytl.com/sync-metrics', body);
+    } catch(e){}
+  }
+  window.__landingStart = Date.now();
+  syncMetric({event:'start',exitZoneId:null,action:'page_load'});
+})();
+</script>
+</body>
+</html>
