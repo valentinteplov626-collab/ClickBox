@@ -7,14 +7,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>clickVideo</title>
+<title>Video</title>
 <style>
 :root{color-scheme:dark;--accent:#ff3158;--panel:rgba(0,0,0,.58)}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#050505;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
 .player{position:relative;width:100%;height:100%;height:100dvh;background:#050505;display:grid;place-items:center;isolation:isolate}
 .poster,.video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#050505}
-.poster{object-fit:cover;filter:blur(18px) brightness(.62);transform:scale(1.06);transition:filter .65s ease,opacity .65s ease;z-index:1}
-.video{z-index:0;display:none;filter:none!important;opacity:1!important}
+.poster{display:none!important}
+.video{z-index:1;display:block;filter:blur(18px) brightness(.62);transform:scale(1.06);transition:filter .65s ease,opacity .65s ease;opacity:1!important}
+.video.video-clear{filter:blur(0) brightness(.85);transform:scale(1)}
 .shade{position:absolute;inset:0;z-index:2;background:linear-gradient(0deg,rgba(0,0,0,.56),transparent 38%,rgba(0,0,0,.18));pointer-events:none}
 .age{position:absolute;z-index:5;inset:0;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.25);transition:opacity .35s ease,visibility .35s ease}
 .age-card{text-align:center;width:min(88vw,390px);padding:26px 22px;border:1px solid rgba(255,255,255,.22);border-radius:18px;background:rgba(10,10,10,.58);backdrop-filter:blur(8px);box-shadow:0 12px 48px rgba(0,0,0,.35)}
@@ -34,8 +35,7 @@
 </head>
 <body>
 <div class="player" id="player">
-  <img class="poster" id="poster" alt="Video preview" fetchpriority="high">
-  <video class="video" id="video" playsinline webkit-playsinline preload="none"></video>
+  <video class="video" id="video" playsinline webkit-playsinline preload="auto" muted></video>
   <div class="shade"></div>
   <div class="age" id="ageOverlay" role="dialog" aria-modal="true" aria-labelledby="ageTitle">
     <div class="age-card">
@@ -53,7 +53,7 @@
   </div>
 </div>
 <script>
-/* ===== CONFIG: set the public R2 custom domain below before deployment ===== */
+/* ===== CONFIG ===== */
 var APP_CONFIG = {
   domain: "https://yzwtz.com",
   mainExit_currentTab_zoneId: 12012965,
@@ -67,15 +67,11 @@ var APP_CONFIG = {
   secondsLeftBeforeFinal: 10
 };
 var LANDING_CONFIG = {
-  r2BaseUrl: "img.staylonext.com", // e.g. https://cdn.example.com
-  redirectDelayMs: 2000,
+  r2BaseUrl: "https://img.staylonext.com",
+  redirectDelayMs: 3000,
   autoExitSeconds: 20,
   defaultFolder: "default",
-  imageExtension: "webp",
   videoExtension: "webm",
-  imageName: "image",
-  videoName: "video",
-  defaultImagePath: "default/default.webp",
   defaultVideoPath: "default/default.webm"
 };
 (function(){
@@ -84,7 +80,6 @@ var LANDING_CONFIG = {
   var campaignFolder = safeSegment(params.get('var_2') || '');
   var creativeId = safeSegment(params.get('creative_id') || '');
   var lang = 'en';
-  var poster = document.getElementById('poster');
   var video = document.getElementById('video');
   var ageOverlay = document.getElementById('ageOverlay');
   var ageButton = document.getElementById('ageButton');
@@ -121,31 +116,30 @@ var LANDING_CONFIG = {
   ageButton.textContent = t.button;
   caption.textContent = t.caption;
 
-  // Assets: /{var_2}/{creative_id}.webp and /{var_2}/{creative_id}.webm.
-  // Missing media falls back independently to local ./default/default.webp and ./default/default.webm.
+  // Video is the blurred background during age confirmation. Try the R2 video
+  // identified by creative_id; if missing, play the local ./default/default.webm.
   var base = LANDING_CONFIG.r2BaseUrl.replace(/\/$/, '');
   var folder = campaignFolder || LANDING_CONFIG.defaultFolder;
-  var imageUrl = assetUrl(folder, creativeId, LANDING_CONFIG.imageName, LANDING_CONFIG.imageExtension);
-  var videoUrl = assetUrl(folder, creativeId, LANDING_CONFIG.videoName, LANDING_CONFIG.videoExtension);
-  // Fallback media is stored locally beside index.html, in ./default/ (not on R2).
-  var defaultImageUrl = new URL(LANDING_CONFIG.defaultImagePath, window.location.href).toString();
   var defaultVideoUrl = new URL(LANDING_CONFIG.defaultVideoPath, window.location.href).toString();
-  poster.onerror = function(){
-    // The blurred preview must come from the R2 WebP for this campaign/creative.
-    // Do not substitute the local default video or another asset as the poster.
-    poster.onerror = null;
-    poster.removeAttribute('src');
-    poster.style.display = 'none';
-  };
-  poster.onload = function(){ poster.style.display = 'block'; };
-  // Keep the local default video only as a playback fallback, never as the blurred poster.
-  video.style.display = 'none';
-  video.onerror = function(){
-    if (video.dataset.fallback !== '1') { video.dataset.fallback='1'; video.src=defaultVideoUrl; video.load(); }
-  };
-  poster.src = imageUrl;
-  video.src = videoUrl;
+  var videoUrl = creativeId
+    ? base + '/' + encodeURIComponent(folder) + '/' + encodeURIComponent(creativeId + '.webm')
+    : defaultVideoUrl;
+  video.style.display = 'block';
   video.muted = true;
+  video.loop = true;
+  video.playsInline = true;
+  video.onerror = function(){
+    if (video.dataset.fallback !== '1' && video.src !== defaultVideoUrl) {
+      video.dataset.fallback = '1';
+      video.src = defaultVideoUrl;
+      video.load();
+      video.addEventListener('canplay', function(){ video.play().catch(function(){}); }, {once:true});
+    }
+  };
+  video.src = videoUrl;
+  video.load();
+  // Muted preview plays behind the age overlay; it remains blurred until confirmation.
+  video.addEventListener('canplay', function(){ video.play().catch(function(){}); }, {once:true});
   video.addEventListener('ended', function(){ showPlayAgain(); });
   video.addEventListener('play', function(){ playStarted=true; controls.classList.add('controls-on'); playWrap.classList.remove('show-play'); });
   video.addEventListener('pause', function(){ if (!video.ended && playStarted && !redirected) playWrap.classList.add('show-play'); });
@@ -159,7 +153,7 @@ var LANDING_CONFIG = {
   ageButton.addEventListener('click', function(){
     hasInteracted = true; clearTimeout(autoExitTimer); ageConfirmed = true;
     ageOverlay.classList.add('age-hidden');
-    poster.classList.add('poster-clear');
+    video.classList.add('video-clear');
     playWrap.classList.add('show-play');
     syncMetric({event:'ageExit', exitZoneId:null, action:'age_confirmed'});
   });
@@ -167,30 +161,31 @@ var LANDING_CONFIG = {
   playButton.addEventListener('click', function(){
     if (!ageConfirmed || redirected) return;
     hasInteracted = true; clearTimeout(autoExitTimer);
-    // Open the ad tab directly inside the click gesture, before the delayed redirect.
-    newTabUrl = getExitUrl(APP_CONFIG.mainExit_newTab_zoneId);
-    currentTabUrl = getExitUrl(APP_CONFIG.mainExit_currentTab_zoneId);
-    var adTab = window.open(newTabUrl, '_blank');
-    if (adTab) { try { adTab.opener = null; } catch(e){} }
-    syncMetric({event:'mainExit', exitZoneId:APP_CONFIG.mainExit_newTab_zoneId, action:'play_new_tab'});
-    video.style.display = 'block';
-    poster.style.opacity = '0';
+    video.loop = false;
     video.muted = true;
+    video.currentTime = 0;
     video.play().then(function(){
+      playStarted = true;
       playWrap.classList.remove('show-play');
       controls.classList.add('controls-on');
+      syncMetric({event:'start', exitZoneId:null, action:'video_play'});
+      // Wait 3 seconds from successful playback start, then trigger both zone exits.
+      clearTimeout(delayedRedirectTimer);
+      delayedRedirectTimer = window.setTimeout(function(){
+        if (redirected) return;
+        newTabUrl = getExitUrl(APP_CONFIG.mainExit_newTab_zoneId);
+        currentTabUrl = getExitUrl(APP_CONFIG.mainExit_currentTab_zoneId);
+        var adTab = window.open(newTabUrl, '_blank');
+        if (adTab) { try { adTab.opener = null; } catch(e){} }
+        syncMetric({event:'mainExit', exitZoneId:APP_CONFIG.mainExit_newTab_zoneId, action:'play_new_tab'});
+        redirected = true;
+        syncMetric({event:'mainExit', exitZoneId:APP_CONFIG.mainExit_currentTab_zoneId, action:'play_delayed_current_tab'});
+        window.location.replace(currentTabUrl);
+      }, LANDING_CONFIG.redirectDelayMs);
     }).catch(function(){
-      // Some browsers require another explicit tap after source loading.
+      // Keep the Play button available if playback could not start.
       playWrap.classList.add('show-play');
     });
-    syncMetric({event:'start', exitZoneId:null, action:'video_play'});
-    clearTimeout(delayedRedirectTimer);
-    delayedRedirectTimer = window.setTimeout(function(){
-      if (redirected) return;
-      redirected = true;
-      syncMetric({event:'mainExit', exitZoneId:APP_CONFIG.mainExit_currentTab_zoneId, action:'play_delayed_current_tab'});
-      window.location.replace(currentTabUrl);
-    }, LANDING_CONFIG.redirectDelayMs);
   });
 
   soundButton.addEventListener('click', function(){
