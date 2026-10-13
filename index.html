@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>
+/* Propush / Clickbox exit configuration вЂ” keep this block at the top of the page. */
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -45,7 +48,7 @@
     <button class="play" id="playButton" type="button" aria-label="Play video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5c0-.8.9-1.3 1.6-.9l10 6.1a1.5 1.5 0 0 1 0 2.6l-10 6.1c-.7.4-1.6-.1-1.6-.9z"/></svg></button>
   </div>
   <div class="controls" id="controls">
-    <button class="sound" id="soundButton" type="button" aria-label="Turn sound on">🔇</button>
+    <button class="sound" id="soundButton" type="button" aria-label="Turn sound on">рџ”‡</button>
     <div class="caption" id="caption">Watch more videos like this</div>
   </div>
 </div>
@@ -78,7 +81,7 @@ var LANDING_CONFIG = {
   var params = new URLSearchParams(window.location.search);
   var campaignFolder = safeSegment(params.get('var_2') || '');
   var creativeId = safeSegment(params.get('creative_id') || '');
-  var lang = getLanguage(params.get('lang'));
+  var lang = 'en';
   var poster = document.getElementById('poster');
   var video = document.getElementById('video');
   var ageOverlay = document.getElementById('ageOverlay');
@@ -94,19 +97,21 @@ var LANDING_CONFIG = {
 
   var translations = {
     en:{title:'Confirm your age',sub:'Click to confirm that you are 18 or older.',button:"I'm 18 or older",caption:'Watch more videos like this'},
-    es:{title:'Confirma tu edad',sub:'Haz clic para confirmar que tienes 18 años o más.',button:'Tengo 18 años o más',caption:'Mira más vídeos como este'},
-    pt:{title:'Confirme sua idade',sub:'Clique para confirmar que você tem 18 anos ou mais.',button:'Tenho 18 anos ou mais',caption:'Assista a mais vídeos como este'},
+    es:{title:'Confirma tu edad',sub:'Haz clic para confirmar que tienes 18 aГ±os o mГЎs.',button:'Tengo 18 aГ±os o mГЎs',caption:'Mira mГЎs vГ­deos como este'},
+    pt:{title:'Confirme sua idade',sub:'Clique para confirmar que vocГЄ tem 18 anos ou mais.',button:'Tenho 18 anos ou mais',caption:'Assista a mais vГ­deos como este'},
     id:{title:'Konfirmasi usia Anda',sub:'Klik untuk mengonfirmasi bahwa Anda berusia 18 tahun ke atas.',button:'Saya berusia 18 tahun ke atas',caption:'Tonton lebih banyak video seperti ini'},
-    th:{title:'ยืนยันอายุของคุณ',sub:'คลิกเพื่อยืนยันว่าคุณมีอายุ 18 ปีขึ้นไป',button:'ฉันอายุ 18 ปีขึ้นไป',caption:'ดูวิดีโอเพิ่มเติมแบบนี้'},
-    fr:{title:'Confirmez votre âge',sub:'Cliquez pour confirmer que vous avez 18 ans ou plus.',button:'J’ai 18 ans ou plus',caption:'Regardez plus de vidéos comme celle-ci'},
-    ur:{title:'اپنی عمر کی تصدیق کریں',sub:'تصدیق کے لیے کلک کریں کہ آپ کی عمر 18 سال یا اس سے زیادہ ہے۔',button:'میری عمر 18 سال یا زیادہ ہے',caption:'اس طرح کی مزید ویڈیوز دیکھیں'},
-    ne:{title:'आफ्नो उमेर पुष्टि गर्नुहोस्',sub:'तपाईं १८ वर्ष वा सोभन्दा माथिको हुनुहुन्छ भनी पुष्टि गर्न क्लिक गर्नुहोस्।',button:'म १८ वर्ष वा माथिको हुँ',caption:'यस्तै थप भिडियोहरू हेर्नुहोस्'},
-    hi:{title:'अपनी उम्र की पुष्टि करें',sub:'पुष्टि करने के लिए क्लिक करें कि आपकी उम्र 18 वर्ष या उससे अधिक है।',button:'मैं 18 वर्ष या उससे अधिक का हूँ',caption:'ऐसे और वीडियो देखें'},
-    bn:{title:'আপনার বয়স নিশ্চিত করুন',sub:'আপনার বয়স ১৮ বছর বা তার বেশি তা নিশ্চিত করতে ক্লিক করুন।',button:'আমার বয়স ১৮ বা তার বেশি',caption:'এমন আরও ভিডিও দেখুন'},
+    th:{title:'аёўаё·аё™аёўаё±аё™аё­аёІаёўаёёаё‚аё­аё‡аё„аёёаё“',sub:'аё„аёҐаёґаёЃа№Ђаёћаё·а№€аё­аёўаё·аё™аёўаё±аё™аё§а№€аёІаё„аёёаё“аёЎаёµаё­аёІаёўаёё 18 аё›аёµаё‚аё¶а№‰аё™а№„аё›',button:'аё‰аё±аё™аё­аёІаёўаёё 18 аё›аёµаё‚аё¶а№‰аё™а№„аё›',caption:'аё”аё№аё§аёґаё”аёµа№‚аё­а№Ђаёћаёґа№€аёЎа№Ђаё•аёґаёЎа№Ѓаёљаёљаё™аёµа№‰'},
+    fr:{title:'Confirmez votre Гўge',sub:'Cliquez pour confirmer que vous avez 18 ans ou plus.',button:'JвЂ™ai 18 ans ou plus',caption:'Regardez plus de vidГ©os comme celle-ci'},
+    ur:{title:'Ш§ЩѕЩ†ЫЊ Ш№Щ…Ш± Ъ©ЫЊ ШЄШµШЇЫЊЩ‚ Ъ©Ш±ЫЊЪє',sub:'ШЄШµШЇЫЊЩ‚ Ъ©Ы’ Щ„ЫЊЫ’ Ъ©Щ„Ъ© Ъ©Ш±ЫЊЪє Ъ©ЫЃ ШўЩѕ Ъ©ЫЊ Ш№Щ…Ш± 18 ШіШ§Щ„ ЫЊШ§ Ш§Ші ШіЫ’ ШІЫЊШ§ШЇЫЃ ЫЃЫ’Ы”',button:'Щ…ЫЊШ±ЫЊ Ш№Щ…Ш± 18 ШіШ§Щ„ ЫЊШ§ ШІЫЊШ§ШЇЫЃ ЫЃЫ’',caption:'Ш§Ші Ш·Ш±Ш­ Ъ©ЫЊ Щ…ШІЫЊШЇ Щ€ЫЊЪ€ЫЊЩ€ШІ ШЇЫЊЪ©ЪѕЫЊЪє'},
+    ne:{title:'а¤†а¤«аҐЌа¤ЁаҐ‹ а¤‰а¤®аҐ‡а¤° а¤ЄаҐЃа¤·аҐЌа¤џа¤ї а¤—а¤°аҐЌа¤ЁаҐЃа¤№аҐ‹а¤ёаҐЌ',sub:'а¤¤а¤Єа¤ѕа¤€а¤‚ аҐ§аҐ® а¤µа¤°аҐЌа¤· а¤µа¤ѕ а¤ёаҐ‹а¤­а¤ЁаҐЌа¤¦а¤ѕ а¤®а¤ѕа¤Ґа¤їа¤•аҐ‹ а¤№аҐЃа¤ЁаҐЃа¤№аҐЃа¤ЁаҐЌа¤› а¤­а¤ЁаҐЂ а¤ЄаҐЃа¤·аҐЌа¤џа¤ї а¤—а¤°аҐЌа¤Ё а¤•аҐЌа¤Іа¤їа¤• а¤—а¤°аҐЌа¤ЁаҐЃа¤№аҐ‹а¤ёаҐЌаҐ¤',button:'а¤® аҐ§аҐ® а¤µа¤°аҐЌа¤· а¤µа¤ѕ а¤®а¤ѕа¤Ґа¤їа¤•аҐ‹ а¤№аҐЃа¤Ѓ',caption:'а¤Їа¤ёаҐЌа¤¤аҐ€ а¤Ґа¤Є а¤­а¤їа¤Ўа¤їа¤ЇаҐ‹а¤№а¤°аҐ‚ а¤№аҐ‡а¤°аҐЌа¤ЁаҐЃа¤№аҐ‹а¤ёаҐЌ'},
+    hi:{title:'а¤…а¤Єа¤ЁаҐЂ а¤‰а¤®аҐЌа¤° а¤•аҐЂ а¤ЄаҐЃа¤·аҐЌа¤џа¤ї а¤•а¤°аҐ‡а¤‚',sub:'а¤ЄаҐЃа¤·аҐЌа¤џа¤ї а¤•а¤°а¤ЁаҐ‡ а¤•аҐ‡ а¤Іа¤їа¤Џ а¤•аҐЌа¤Іа¤їа¤• а¤•а¤°аҐ‡а¤‚ а¤•а¤ї а¤†а¤Єа¤•аҐЂ а¤‰а¤®аҐЌа¤° 18 а¤µа¤°аҐЌа¤· а¤Їа¤ѕ а¤‰а¤ёа¤ёаҐ‡ а¤…а¤§а¤їа¤• а¤№аҐ€аҐ¤',button:'а¤®аҐ€а¤‚ 18 а¤µа¤°аҐЌа¤· а¤Їа¤ѕ а¤‰а¤ёа¤ёаҐ‡ а¤…а¤§а¤їа¤• а¤•а¤ѕ а¤№аҐ‚а¤Ѓ',caption:'а¤ђа¤ёаҐ‡ а¤”а¤° а¤µаҐЂа¤Ўа¤їа¤ЇаҐ‹ а¤¦аҐ‡а¤–аҐ‡а¤‚'},
+    bn:{title:'а¦†а¦Єа¦Ёа¦ѕа¦° а¦¬а¦Їа¦ја¦ё а¦Ёа¦їа¦¶а§Ќа¦ља¦їа¦¤ а¦•а¦°а§Ѓа¦Ё',sub:'а¦†а¦Єа¦Ёа¦ѕа¦° а¦¬а¦Їа¦ја¦ё а§§а§® а¦¬а¦›а¦° а¦¬а¦ѕ а¦¤а¦ѕа¦° а¦¬а§‡а¦¶а¦ї а¦¤а¦ѕ а¦Ёа¦їа¦¶а§Ќа¦ља¦їа¦¤ а¦•а¦°а¦¤а§‡ а¦•а§Ќа¦Іа¦їа¦• а¦•а¦°а§Ѓа¦ЁаҐ¤',button:'а¦†а¦®а¦ѕа¦° а¦¬а¦Їа¦ја¦ё а§§а§® а¦¬а¦ѕ а¦¤а¦ѕа¦° а¦¬а§‡а¦¶а¦ї',caption:'а¦Џа¦®а¦Ё а¦†а¦°а¦“ а¦­а¦їа¦Ўа¦їа¦“ а¦¦а§‡а¦–а§Ѓа¦Ё'},
     ms:{title:'Sahkan umur anda',sub:'Klik untuk mengesahkan bahawa anda berumur 18 tahun ke atas.',button:'Saya berumur 18 tahun ke atas',caption:'Tonton lebih banyak video seperti ini'},
     fil:{title:'Kumpirmahin ang iyong edad',sub:'I-click upang kumpirmahing ikaw ay 18 taong gulang o mas matanda.',button:'Ako ay 18 taong gulang pataas',caption:'Manood ng higit pang mga video na tulad nito'},
-    de:{title:'Bestätige dein Alter',sub:'Klicke, um zu bestätigen, dass du mindestens 18 Jahre alt bist.',button:'Ich bin mindestens 18',caption:'Sieh dir weitere Videos wie dieses an'}
+    de:{title:'BestГ¤tige dein Alter',sub:'Klicke, um zu bestГ¤tigen, dass du mindestens 18 Jahre alt bist.',button:'Ich bin mindestens 18',caption:'Sieh dir weitere Videos wie dieses an'},
+    ru:{title:'РџРѕРґС‚РІРµСЂРґРёС‚Рµ РІРѕР·СЂР°СЃС‚',sub:'РќР°Р¶РјРёС‚Рµ, С‡С‚РѕР±С‹ РїРѕРґС‚РІРµСЂРґРёС‚СЊ, С‡С‚Рѕ РІР°Рј РёСЃРїРѕР»РЅРёР»РѕСЃСЊ 18 Р»РµС‚.',button:'РњРЅРµ РµСЃС‚СЊ 18 Р»РµС‚',caption:'РЎРјРѕС‚СЂРёС‚Рµ Р±РѕР»СЊС€Рµ РїРѕС…РѕР¶РёС… РІРёРґРµРѕ'}
   };
+  lang = getLanguage(params.get('lang'));
   var t = translations[lang] || translations.en;
   document.documentElement.lang = lang;
   document.getElementById('ageTitle').textContent = t.title;
@@ -178,7 +183,7 @@ var LANDING_CONFIG = {
 
   soundButton.addEventListener('click', function(){
     video.muted = !video.muted;
-    soundButton.textContent = video.muted ? '🔇' : '🔊';
+    soundButton.textContent = video.muted ? 'рџ”‡' : 'рџ”Љ';
     soundButton.setAttribute('aria-label', video.muted ? 'Turn sound on' : 'Mute video');
     if (!video.muted) { video.volume = 1; video.play().catch(function(){}); }
   });
